@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>J.A.R.V.I.S.</title>
+  <meta name="description" content="Personal AI assistant with voice, Google Drive and engineering tools.">
+  <meta name="theme-color" content="#03121b">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+  <script async defer src="https://accounts.google.com/gsi/client"></script>
+</head>
+<body data-state="idle">
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <button class="icon-btn only-narrow" id="btnLeft" aria-label="Systems panel">&#9776;</button>
+    <div class="brand">J.A.R.V.I.S.<span>Just A Rather Very Intelligent System</span></div>
+    <div class="top-actions">
+      <span class="pill" id="statusPill">ONLINE</span>
+      <button class="icon-btn only-narrow" id="btnRight" aria-label="Tools panel">&#8862;</button>
+      <button class="icon-btn" id="btnSettings" aria-label="Settings">&#9965;&#xFE0E;</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: systems -->
+    <aside class="panel side left" id="panelLeft">
+      <section class="card">
+        <h3>System Status</h3>
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="date" id="date">—</div>
+        <ul class="stats">
+          <li><span>AI Core</span><b id="stAI">OFFLINE</b></li>
+          <li><span>Voice</span><b id="stVoice">—</b></li>
+          <li><span>Google Drive</span><b id="stDrive">DISCONNECTED</b></li>
+          <li><span>Network</span><b id="stNet">—</b></li>
+          <li><span>Mode</span><b id="stMode">STANDARD</b></li>
+        </ul>
+      </section>
+      <section class="card">
+        <h3>Engineering Calculator</h3>
+        <p class="hint">Math, units &amp; conversions. Works offline. Try <code>12 kN * 3.5 m to lbf ft</code> or <code>sqrt(3)*400 V * 25 A</code></p>
+        <form id="calcForm" class="row">
+          <input id="calcInput" autocomplete="off" spellcheck="false" placeholder="Enter expression…">
+          <button class="btn" type="submit">=</button>
+        </form>
+        <div class="calc-out" id="calcOut"></div>
+      </section>
+    </aside>
+
+    <!-- CENTER: HUD + chat -->
+    <section class="center">
+      <div class="hud-wrap">
+        <canvas id="hud" aria-hidden="true"></canvas>
+        <button class="core" id="core" aria-label="Talk to JARVIS">
+          <span class="core-label">J.A.R.V.I.S</span>
+          <span class="core-sub" id="coreSub">TAP TO SPEAK</span>
+        </button>
+      </div>
+
+      <div class="chat panel" id="chatPanel">
+        <div class="chat-head">
+          <span>Transcript</span>
+          <div class="chips">
+            <button class="chip" id="btnEng" aria-pressed="false" title="Deeper reasoning for hard engineering problems">Engineering mode</button>
+            <button class="chip" id="btnNew" title="Start a new conversation">New session</button>
+          </div>
+        </div>
+        <div class="log" id="log" aria-live="polite"></div>
+        <form class="composer" id="composer">
+          <button type="button" class="mic" id="mic" aria-label="Voice input">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V22h2v-3.08A7 7 0 0 0 19 12h-2Z"/></svg>
+          </button>
+          <textarea id="input" rows="1" placeholder="Ask JARVIS anything…" autocomplete="off"></textarea>
+          <button type="submit" class="send" id="send" aria-label="Send">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3 20.5 21 12 3 3.5v6.6l12 1.9-12 1.9z"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- RIGHT: tools -->
+    <aside class="panel side right" id="panelRight">
+      <section class="card">
+        <h3>Google Drive</h3>
+        <p class="hint" id="driveHint">Connect to let JARVIS search, read and create your Docs.</p>
+        <button class="btn wide" id="btnDrive">Connect Google Drive</button>
+        <div class="file-list" id="driveFiles"></div>
+      </section>
+      <section class="card">
+        <h3>Quick Protocols</h3>
+        <div class="quick">
+          <button class="qbtn" data-q="Give me a quick briefing: today's date and time, and summarize my 5 most recently edited Google Drive files.">Daily briefing</button>
+          <button class="qbtn" data-q="Search my Google Drive for my most recent document and summarize it in 5 bullet points.">Summarize latest doc</button>
+          <button class="qbtn" data-q="I have an engineering problem. Ask me for the givens, then solve it step by step with units, assumptions and a sanity check.">Engineering problem</button>
+          <button class="qbtn" data-q="Size a simply supported steel beam: 6 m span, 15 kN/m uniform load. Give max moment, shear, required section modulus for S275, and suggest a UB section.">Beam sizing example</button>
+          <button class="qbtn" data-q="Help me plan my day. Ask me what I need to get done, then build a prioritized schedule.">Plan my day</button>
+          <button class="qbtn" data-q="Show my saved notes.">My notes</button>
+        </div>
+      </section>
+      <section class="card">
+        <h3>Memory Notes</h3>
+        <ul class="notes" id="notes"></ul>
+      </section>
+    </aside>
+  </main>
+
+  <div class="scrim" id="scrim" hidden></div>
+
+  <!-- Settings -->
+  <dialog id="settings" class="modal">
+    <form method="dialog" id="settingsForm">
+      <h2>System Configuration</h2>
+
+      <fieldset>
+        <legend>AI Core (Claude)</legend>
+        <label>Anthropic API key
+          <input type="password" id="setKey" autocomplete="off" placeholder="sk-ant-…">
+          <small>Stored only in this browser on this device. Get one at console.anthropic.com.</small>
+        </label>
+        <div class="grid2">
+          <label>Model
+            <select id="setModel">
+              <option value="claude-opus-5-5">Claude Opus 5.5 (recommended)</option>
+              <option value="claude-fable-5-1">Claude Fable 5.1 (most capable)</option>
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (faster)</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5 (fastest, cheapest)</option>
+            </select>
+          </label>
+          <label>Standard effort
+            <select id="setEffort">
+              <option value="low">Low (quick replies)</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="setWeb"> Allow web search</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Personality &amp; Voice</legend>
+        <label>How should JARVIS address you?
+          <input id="setName" placeholder="sir">
+        </label>
+        <label class="check"><input type="checkbox" id="setSpeak"> Speak replies aloud</label>
+        <label class="check"><input type="checkbox" id="setWake"> Always listen for "Jarvis" wake word (Chrome/Edge)</label>
+        <label>Voice
+          <select id="setVoice"></select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Google Drive</legend>
+        <label>Google OAuth Client ID
+          <input id="setGClient" autocomplete="off" placeholder="xxxx.apps.googleusercontent.com">
+          <small>See README.md for the 5-minute setup in Google Cloud Console.</small>
+        </label>
+      </fieldset>
+
+      <div class="modal-actions">
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn" id="saveSettings" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

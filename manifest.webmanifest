@@ -1,0 +1,15 @@
+{
+  "name": "J.A.R.V.I.S.",
+  "short_name": "JARVIS",
+  "description": "Personal AI assistant with voice, Google Drive and engineering tools.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#01070b",
+  "theme_color": "#03121b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
