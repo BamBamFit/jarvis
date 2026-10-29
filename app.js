@@ -25,7 +25,7 @@ let engineeringMode = store.get("engMode", false);
 let history = store.get("history", []);
 let notes = store.get("notes", []);
 let historyWarned = false;
-let safeMode = store.get("safeMode", false);
+let safeMode = store.get("safeModeV2", false);
 
 const $ = (id) => document.getElementById(id);
 const hud = createHUD($("hud"));
@@ -583,8 +583,10 @@ async function askClaude(text) {
     }
   } catch (err) {
     history = JSON.parse(snapshot);
-    if (err instanceof Anthropic.BadRequestError && !safeMode && !turnText) {
-      safeMode = true; store.set("safeMode", true);
+    // Account problems (e.g. no credit) aren't caused by the request, so don't switch features off for them.
+    if (isAccountError(err)) { safeMode = false; store.set("safeModeV2", false); }
+    else if (err instanceof Anthropic.BadRequestError && !safeMode && !turnText) {
+      safeMode = true; store.set("safeModeV2", true);
       bubble.remove();
       return askClaude(text);
     }
@@ -602,7 +604,12 @@ async function askClaude(text) {
   return turnText;
 }
 
+function isAccountError(err) {
+  return err instanceof Anthropic.APIError && /credit balance|billing|spend limit|usage limit/i.test(err.message || "");
+}
+
 function describeError(err) {
+  if (isAccountError(err)) return "My AI core has run out of credit, sir. Add credits at console.anthropic.com → Settings → Billing, then try again. (A Claude.ai Pro or Max subscription doesn't cover API usage.)";
   if (err instanceof Anthropic.AuthenticationError) return "My API key was rejected. Please check it in Settings.";
   if (err instanceof Anthropic.PermissionDeniedError) return "This API key doesn't have access to the selected model. Try another model in Settings.";
   if (err instanceof Anthropic.NotFoundError) return "The selected model wasn't found. Choose another model in Settings.";
@@ -718,7 +725,7 @@ dlg.addEventListener("close", () => {
     voice: $("setVoice").value, gclient: $("setGClient").value.trim(),
   };
   store.set("settings", settings);
-  safeMode = false; store.set("safeMode", false);
+  safeMode = false; store.set("safeModeV2", false);
   refreshStatus();
   if (settings.wake && !wasWake) { addMsg("sys", 'Wake word active. Say "Jarvis" followed by your request.'); resumeWake(); }
   if (!settings.wake && wasWake) stopWake();
